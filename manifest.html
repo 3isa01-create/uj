@@ -101,6 +101,12 @@ button {
     transition: 0.2s background-color;
 }
 
+.btn-preview {
+    background-color: #7c3aed;
+    color: white;
+}
+.btn-preview:hover { background-color: #6d28d9; }
+
 .btn-single {
     background-color: #0284c7;
     color: white;
@@ -202,19 +208,15 @@ button {
 
 /* على الجوال: الكشف نفسه يبقى بنفس المقاس ونفس الإحداثيات؛ لا يُسمح له بالانكماش */
 @media (max-width: 1000px) {
-    body {
-        min-width: 1000px;
-    }
-
     #reportWrapper {
-        width: 1000px;
-        min-width: 1000px;
-        justify-content: flex-start;
+        width: 100%;
+        min-width: 0;
+        overflow-x: auto;
     }
 
     #reportArea {
-        margin-left: 100px;
-        margin-right: 100px;
+        margin-left: 20px;
+        margin-right: 20px;
     }
 }
 </style>
@@ -284,6 +286,10 @@ button {
     </div>
 
     <div class="btn-group">
+        <button class="btn-preview" onclick="showReport()">عرض الكشف</button>
+    </div>
+
+    <div class="btn-group">
         <button class="btn-single" onclick="downloadSingleDayPDF()">تحميل يوم واحد فقط</button>
         <button class="btn-month" onclick="downloadFullMonthPDF()">تحميل كشف شهر بالكامل</button>
     </div>
@@ -295,7 +301,7 @@ button {
 </div>
 
 <!-- منطقة التقرير -->
-<div id="reportWrapper">
+<div id="reportWrapper" style="display:none;">
     <div id="reportArea">
         <img id="templateImg" src="template_50.png" alt="نموذج التقرير">
 
@@ -360,8 +366,37 @@ function uploadImage(event) {
 
 // دالة مساعدة للالتقاط (تُبقي الشكل موحداً مع بقية الملفات)
 async function captureReportAtFullSize(scaleFactor) {
+    const wrapper = document.getElementById('reportWrapper');
+    const wasHidden = getComputedStyle(wrapper).display === 'none';
+
+    if (wasHidden) {
+        wrapper.style.display = 'block';
+        // إعطاء المتصفح لحظة لإعادة حساب أبعاد الكشف قبل الالتقاط
+        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
+    }
+
     const area = document.getElementById('reportArea');
-    return await html2canvas(area, { scale: scaleFactor, useCORS: true, logging: false });
+    const canvas = await html2canvas(area, {
+        scale: scaleFactor,
+        useCORS: true,
+        logging: false,
+        width: 800,
+        height: 1130,
+        windowWidth: 1000
+    });
+
+    if (wasHidden) {
+        wrapper.style.display = 'none';
+    }
+
+    return canvas;
+}
+
+// إظهار الكشف عند الطلب فقط
+function showReport() {
+    const wrapper = document.getElementById('reportWrapper');
+    wrapper.style.display = 'block';
+    wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
 }
 
 // ضبط تاريخ اليوم
