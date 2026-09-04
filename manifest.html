@@ -6,7 +6,7 @@
      دائماً وكأنها تُفتح من كمبيوتر بعرض 1000px، ثم يقوم متصفح الجوال تلقائياً بتصغير الصفحة كاملة
      لتناسب عرض الشاشة (كأنها مُقربة/مُصغّرة) دون كسر أي تنسيق أو مواقع للحقول. يبقى بإمكان المستخدم
      التكبير (Pinch-Zoom) أو التمرير الأفقي عند الحاجة للتعامل مع الأزرار والحقول عن قرب. -->
-<meta name="viewport" content="width=1000, initial-scale=1, shrink-to-fit=no">
+<meta name="viewport" content="width=1000, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=yes, shrink-to-fit=no">
 <title>إنشاء تقارير كشف السائق</title>
 
 <!-- استدعاء ملف البيانات الموحد -->
@@ -142,26 +142,43 @@ button {
 
 /* منطقة التقرير */
 #reportWrapper {
-    display: flex;
-    justify-content: center;
+    display: block;
+    width: 100%;
     padding-bottom: 40px;
+    overflow-x: auto;
+    overflow-y: visible;
+    -webkit-overflow-scrolling: touch;
 }
 
 #reportArea {
     position: relative;
     width: 800px;
+    min-width: 800px;
+    max-width: 800px;
     height: 1130px;
+    min-height: 1130px;
+    max-height: 1130px;
+    flex: 0 0 800px;
+    margin: 0 auto;
     background: white;
     box-shadow: 0 0 20px rgba(0,0,0,0.15);
+    overflow: hidden;
 }
 
 #reportArea img {
-    width: 100%;
-    height: 100%;
+    display: block;
+    width: 800px;
+    height: 1130px;
+    min-width: 800px;
+    max-width: none;
+    min-height: 1130px;
+    max-height: none;
     position: absolute;
     top: 0;
     left: 0;
     z-index: 1;
+    object-fit: fill;
+    object-position: top left;
 }
 
 /* الحقول المطبوعة */
@@ -182,6 +199,24 @@ button {
 #driverIdVal   { top: 156px; right: 560px; }
 #passengersVal { top: 196px; right: 560px; }
 #dateVal       { top: 236px; right: 560px; }
+
+/* على الجوال: الكشف نفسه يبقى بنفس المقاس ونفس الإحداثيات؛ لا يُسمح له بالانكماش */
+@media (max-width: 1000px) {
+    body {
+        min-width: 1000px;
+    }
+
+    #reportWrapper {
+        width: 1000px;
+        min-width: 1000px;
+        justify-content: flex-start;
+    }
+
+    #reportArea {
+        margin-left: 100px;
+        margin-right: 100px;
+    }
+}
 </style>
 </head>
 <body>
