@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=1000">
+<title>عقد النقل</title>
+
+<style>
+  body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; direction: rtl; margin: 0; padding: 20px; background: #eef2f5; }
+  .container { width: 650px; max-width: 100%; box-sizing: border-box; margin: 0 auto; background: white; padding: 25px 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: center; }
+  .btn-group { display: flex; gap: 10px; margin-top: 20px; margin-bottom: 20px; justify-content: center; }
+  button { flex: 1; padding: 12px; font-size: 15px; font-weight: bold; color: white; border: none; border-radius: 6px; cursor: pointer; transition: 0.2s; }
+  .download-btn { background-color: #28a745; }
+  .download-btn:hover { background-color: #1e7e34; }
+  .pdf-btn { background-color: #17a2b8; }
+  .pdf-btn:hover { background-color: #117a8b; }
+  
+  /* تنسيق صورة العقد */
+  .image-preview { width: 100%; border: 1px solid #ddd; border-radius: 8px; margin-top: 10px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+</style>
+
+<!-- استدعاء مكتبة PDF -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="margin-top: 0; color: #222;">عقد النقل</h2>
+    <p style="color: #666; font-size: 14px;">يمكنك معاينة العقد وتحميله بالصيغة التي تناسبك.</p>
+    
+    <div class="btn-group">
+        <button class="download-btn" onclick="downloadImage()">تحميل كصورة (PNG)</button>
+        <button class="pdf-btn" onclick="downloadPDF()">تحميل كملف (PDF)</button>
+    </div>
+
+    <!-- تأكد من وضع صورة العقد الخاصة بك باسم contract.png في نفس المجلد -->
+    <img id="contractImage" src="contract.png" class="image-preview" alt="عقد النقل">
+</div>
+
+<script>
+// دالة تحميل الصورة
+function downloadImage() {
+    const link = document.createElement('a');
+    link.href = document.getElementById('contractImage').src;
+    link.download = 'عقد_النقل.png';
+    link.click();
+}
+
+// دالة تحميل PDF
+function downloadPDF() {
+    const img = document.getElementById('contractImage');
+    
+    // إنشاء ملف PDF بحجم A4
+    const pdf = new jspdf.jsPDF("p", "pt", "a4");
+    
+    // حساب الأبعاد لتناسب الصورة عرض صفحة الـ PDF
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (img.naturalHeight * pdfWidth) / img.naturalWidth;
+    
+    // رسم الصورة على Canvas لتحويلها لصيغة يقبلها الـ PDF
+    const canvas = document.createElement("canvas");
+    canvas.width = img.naturalWidth;
+    canvas.height = img.naturalHeight;
+    const ctx = canvas.getContext("2d");
+    ctx.drawImage(img, 0, 0);
+    const imgData = canvas.toDataURL("image/png", 1.0);
+
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save('عقد_النقل.pdf');
+}
+</script>
+</body>
+</html>

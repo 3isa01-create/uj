@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>نظام إدارة سجلات المؤسسة</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; background: #eef2f5; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+  
+  #topbar { background: #1e293b; color: white; padding: 14px 20px; text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.2); position: sticky; top: 0; z-index: 100; }
+  #topbar h1 { margin: 0 0 12px 0; font-size: 19px; font-weight: bold; }
+  
+  .tabs { display: flex; justify-content: center; gap: 10px; flex-wrap: wrap; margin-bottom: 10px; }
+  .tab-btn { background: #334155; color: #cbd5e1; border: none; padding: 10px 22px; font-size: 15px; font-weight: bold; border-radius: 8px; cursor: pointer; transition: 0.2s all; }
+  .tab-btn:hover { background: #475569; color: white; }
+  .tab-btn.active { background: #2563eb; color: white; }
+  
+  /* تنسيق قسم الإعداد والروابط */
+  #credits { margin-top: 8px; font-size: 14px; color: #94a3b8; display: flex; justify-content: center; align-items: center; gap: 10px; }
+  #credits a { color: #cbd5e1; text-decoration: none; font-size: 16px; transition: transform 0.2s; display: inline-block; }
+  #credits a:hover { color: white; transform: scale(1.2); }
+  
+  #frames-container { position: relative; width: 100%; height: calc(100vh - 120px); }
+  iframe { position: absolute; top: 0; left: 0; width: 100%; height: 100%; border: none; display: none; background: #eef2f5; }
+  iframe.active { display: block; }
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>نظام إدارة سجلات المؤسسة</h1>
+  <div class="tabs">
+    <button class="tab-btn active" id="btn-inspection" onclick="showTab('inspection')">سجل الفحص اليومي</button>
+    <button class="tab-btn" id="btn-manifest" onclick="showTab('manifest')">كشف الركاب</button>
+    <button class="tab-btn" id="btn-contract" onclick="showTab('contract')">عقد النقل</button>
+  </div>
+  
+  <!-- قسم الحقوق والروابط المخفية -->
+  <div id="credits">
+    إعداد: عيسى إبراهيم
+    <a href="tel:+966556548496" title="اتصال مباشر">📞</a>
+    <a href="mailto:3isa01@gmail.com" title="إرسال بريد إلكتروني">📧</a>
+    <a href="https://www.3isa01.com/2026/06/kif.html?m=1" title="زيارة الموقع" target="_blank">🌐</a>
+  </div>
+</div>
+
+<div id="frames-container">
+  <iframe id="frame-inspection" src="inspection.html" class="active"></iframe>
+  <iframe id="frame-manifest" src="manifest.html"></iframe>
+  <iframe id="frame-contract" src="contract.html"></iframe>
+</div>
+
+<script>
+function showTab(name) {
+  // إخفاء/إظهار النوافذ
+  document.getElementById('frame-inspection').classList.toggle('active', name === 'inspection');
+  document.getElementById('frame-manifest').classList.toggle('active', name === 'manifest');
+  document.getElementById('frame-contract').classList.toggle('active', name === 'contract');
+  
+  // تفعيل/إلغاء تفعيل الأزرار
+  document.getElementById('btn-inspection').classList.toggle('active', name === 'inspection');
+  document.getElementById('btn-manifest').classList.toggle('active', name === 'manifest');
+  document.getElementById('btn-contract').classList.toggle('active', name === 'contract');
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,454 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<!-- عرض ثابت 1000px بدل عرض الجهاز: هذا يجبر الصفحة كاملة (النموذج + معاينة الكشف) على التصرف
+     دائماً وكأنها تُفتح من كمبيوتر بعرض 1000px، ثم يقوم متصفح الجوال تلقائياً بتصغير الصفحة كاملة
+     لتناسب عرض الشاشة (كأنها مُقربة/مُصغّرة) دون كسر أي تنسيق أو مواقع للحقول. يبقى بإمكان المستخدم
+     التكبير (Pinch-Zoom) أو التمرير الأفقي عند الحاجة للتعامل مع الأزرار والحقول عن قرب. -->
+<meta name="viewport" content="width=1000">
+<title>إنشاء تقارير كشف السائق</title>
+
+<!-- استدعاء ملف البيانات الموحد -->
+<script src="data.js"></script>
+
+<style>
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Segoe UI', Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background: #eef2f5;
+    color: #333;
+}
+
+.container {
+    max-width: 600px;
+    margin: 0 auto 30px auto;
+    background: #ffffff;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+
+h2 {
+    margin-top: 0;
+    text-align: center;
+    color: #1e3a8a;
+    border-bottom: 2px solid #f0f0f0;
+    padding-bottom: 12px;
+}
+
+.form-group {
+    margin-bottom: 14px;
+}
+
+label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: 600;
+    font-size: 14px;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    font-size: 15px;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+}
+
+input:focus, select:focus {
+    border-color: #2563eb;
+}
+
+input[readonly] {
+    background-color: #f8fafc;
+    color: #555;
+}
+
+.template-section {
+    background: #f8fafc;
+    border: 1px dashed #cbd5e1;
+    padding: 12px;
+    border-radius: 8px;
+    margin-bottom: 15px;
+}
+
+.btn-group {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+button {
+    flex: 1;
+    padding: 12px 10px;
+    font-size: 15px;
+    font-weight: bold;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s background-color;
+}
+
+.btn-single {
+    background-color: #0284c7;
+    color: white;
+}
+.btn-single:hover { background-color: #0369a1; }
+
+.btn-month {
+    background-color: #16a34a;
+    color: white;
+}
+.btn-month:hover { background-color: #15803d; }
+
+#progressContainer {
+    display: none;
+    margin-top: 15px;
+    background-color: #e2e8f0;
+    border-radius: 6px;
+    overflow: hidden;
+    height: 24px;
+    position: relative;
+}
+
+#progressBar {
+    height: 100%;
+    width: 0%;
+    background-color: #2563eb;
+    transition: width 0.1s ease;
+}
+
+#progressText {
+    position: absolute;
+    width: 100%;
+    text-align: center;
+    top: 2px;
+    font-size: 13px;
+    font-weight: bold;
+    color: #1e293b;
+}
+
+/* منطقة التقرير */
+#reportWrapper {
+    display: flex;
+    justify-content: center;
+    padding-bottom: 40px;
+}
+
+#reportArea {
+    position: relative;
+    width: 800px;
+    height: 1130px;
+    background: white;
+    box-shadow: 0 0 20px rgba(0,0,0,0.15);
+}
+
+#reportArea img {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+/* الحقول المطبوعة */
+.field {
+    position: absolute;
+    z-index: 2;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 17px;
+    font-weight: bold;
+    color: #000;
+    white-space: nowrap;
+}
+
+#driverNameVal { top: 156px; right: 130px; }
+#plateVal      { top: 196px; right: 130px; }
+#routeVal      { top: 236px; right: 130px; }
+
+#driverIdVal   { top: 156px; right: 560px; }
+#passengersVal { top: 196px; right: 560px; }
+#dateVal       { top: 236px; right: 560px; }
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2>كشف الركاب مؤسسة أجرة</h2>
+
+    <div class="form-group">
+        <label>اسم السائق:</label>
+        <select id="driverSelect"></select>
+    </div>
+
+    <div class="form-group">
+        <label>رقم الهوية:</label>
+        <input id="idInput" readonly>
+    </div>
+
+    <div class="form-group">
+        <label>رقم اللوحة:</label>
+        <input id="plateInput" readonly>
+    </div>
+
+    <div class="form-group">
+        <label>عدد الركاب:</label>
+        <input id="passengersInput" oninput="updatePreview()">
+    </div>
+
+    <div class="form-group">
+        <label>اتجاه الرحلة:</label>
+        <select id="routeInput" onchange="handleRouteChange()">
+            <option value="مكة - جدة - مكة">مكة - جدة - مكة</option>
+            <option value="مكة - الطائف - مكة">مكة - الطائف - مكة</option>
+            <option value="مكة - المدينة - مكة">مكة - المدينة - مكة</option>
+            <option value="custom">-- وجهة أخرى (كتابة يدوية) --</option>
+        </select>
+    </div>
+
+    <!-- خانة كتابة الوجهة المخصصة تظهر عند اختيار وجهة أخرى -->
+    <div class="form-group" id="customRouteContainer" style="display: none;">
+        <label>اكتب الوجهة المطلوبة:</label>
+        <input id="customRouteInput" placeholder="مثال: مكة - الرياض - مكة" oninput="updatePreview()">
+    </div>
+
+    <div class="form-group">
+        <label>اختر التاريخ:</label>
+        <input id="dateInput" type="date" onchange="updatePreview()">
+    </div>
+
+    <!-- قسم اختيار أو تحميل النموذج تم نقله هنا -->
+    <div class="template-section">
+        <div class="form-group" style="margin-bottom: 8px;">
+            <label>اختر قالب الكشف:</label>
+            <select id="templateSelect" onchange="handleTemplateChange()">
+                <option value="template_12.png">كشف 12</option>
+                <option value="template_20.png">كشف 20</option>
+                <option value="template_50.png" selected>كشف 50</option>
+                <option value="custom">-- أو ارفع قالب مخصص من جهازك --</option>
+            </select>
+        </div>
+
+        <div class="form-group" id="fileUploadContainer" style="display: none; margin-bottom: 0;">
+            <label>اختر صورة القالب من جهازك:</label>
+            <input type="file" id="imageUploader" accept="image/*" onchange="uploadImage(event)">
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button class="btn-single" onclick="downloadSingleDayPDF()">تحميل يوم واحد فقط</button>
+        <button class="btn-month" onclick="downloadFullMonthPDF()">تحميل كشف شهر بالكامل</button>
+    </div>
+
+    <div id="progressContainer">
+        <div id="progressBar"></div>
+        <div id="progressText">جاري التوليد...</div>
+    </div>
+</div>
+
+<!-- منطقة التقرير -->
+<div id="reportWrapper">
+    <div id="reportArea">
+        <img id="templateImg" src="template_50.png" alt="نموذج التقرير">
+
+        <div id="driverNameVal" class="field"></div>
+        <div id="driverIdVal" class="field"></div>
+        <div id="plateVal" class="field"></div>
+        <div id="passengersVal" class="field"></div>
+        <div id="routeVal" class="field"></div>
+        <div id="dateVal" class="field"></div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+// معالجة تغيير القالب
+function handleTemplateChange() {
+    const select = document.getElementById('templateSelect');
+    const uploadContainer = document.getElementById('fileUploadContainer');
+    
+    if (select.value === 'custom') {
+        uploadContainer.style.display = 'block';
+    } else {
+        uploadContainer.style.display = 'none';
+        document.getElementById('templateImg').src = select.value;
+    }
+}
+
+// معالجة تغيير اتجاه الرحلة
+function handleRouteChange() {
+    const select = document.getElementById('routeInput');
+    const customContainer = document.getElementById('customRouteContainer');
+    if (select.value === 'custom') {
+        customContainer.style.display = 'block';
+    } else {
+        customContainer.style.display = 'none';
+    }
+    updatePreview();
+}
+
+// جلب قيمة الوجهة الحالية
+function getSelectedRoute() {
+    const select = document.getElementById('routeInput');
+    if (select.value === 'custom') {
+        return document.getElementById('customRouteInput').value || "غير محدد";
+    }
+    return select.value;
+}
+
+// رفع صورة مخصصة من الجهاز
+function uploadImage(event) {
+    const file = event.target.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            document.getElementById('templateImg').src = e.target.result;
+        };
+        reader.readAsDataURL(file);
+    }
+}
+
+// دالة مساعدة للالتقاط (تُبقي الشكل موحداً مع بقية الملفات)
+async function captureReportAtFullSize(scaleFactor) {
+    const area = document.getElementById('reportArea');
+    return await html2canvas(area, { scale: scaleFactor, useCORS: true, logging: false });
+}
+
+// ضبط تاريخ اليوم
+document.getElementById('dateInput').valueAsDate = new Date();
+
+// تعبئة قائمة السائقين من ملف data.js
+const driverSelect = document.getElementById("driverSelect");
+driverSelect.innerHTML = '';
+transportData.forEach((d, index) => {
+    const opt = document.createElement("option");
+    opt.value = index;
+    opt.textContent = `${d.driverName} (${d.plateNumber})`;
+    driverSelect.appendChild(opt);
+});
+
+// عند اختيار سائق
+driverSelect.onchange = () => {
+    const idx = driverSelect.value;
+    if(idx !== "") {
+        const d = transportData[idx];
+        document.getElementById("idInput").value = d.idNumber;
+        document.getElementById("plateInput").value = d.plateNumber;
+        document.getElementById("passengersInput").value = d.passengersCount;
+        
+        // ضبط القالب تلقائياً حسب عدد الركاب
+        const templateSelect = document.getElementById('templateSelect');
+        if (templateSelect.value !== 'custom') {
+            const passCount = parseInt(d.passengersCount, 10);
+            if (passCount <= 12) templateSelect.value = "template_12.png";
+            else if (passCount <= 20) templateSelect.value = "template_20.png";
+            else templateSelect.value = "template_50.png";
+            handleTemplateChange();
+        }
+
+        updatePreview();
+    }
+};
+
+// تحديث المعاينة
+function updatePreview() {
+    const idx = driverSelect.value;
+    if(idx === "") return;
+    const d = transportData[idx];
+
+    document.getElementById("driverNameVal").textContent = d.driverName;
+    document.getElementById("driverIdVal").textContent = d.idNumber;
+    document.getElementById("plateVal").textContent = d.plateNumber;
+    document.getElementById("passengersVal").textContent = document.getElementById("passengersInput").value;
+    document.getElementById("routeVal").textContent = getSelectedRoute();
+    document.getElementById("dateVal").textContent = document.getElementById("dateInput").value;
+}
+
+// تفعيل أول سائق في القائمة
+if (transportData.length > 0) {
+    driverSelect.selectedIndex = 0;
+    driverSelect.onchange();
+}
+
+// تحميل يوم واحد PDF
+async function downloadSingleDayPDF() {
+    const canvas = await captureReportAtFullSize(2);
+    const imgData = canvas.toDataURL("image/jpeg", 0.95);
+    
+    const pdf = new jspdf.jsPDF("p", "mm", "a4");
+    pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+    
+    const d = transportData[driverSelect.value];
+    const driverName = d ? d.driverName : "تقرير";
+    const dateVal = document.getElementById("dateInput").value;
+    
+    // إزالة المسافات من اسم الملف
+    const cleanName = driverName.replace(/\s+/g, '_');
+    pdf.save(`كشف_رحلة_${cleanName}_${dateVal}.pdf`);
+}
+
+// تحميل كشف شهر كامل PDF
+async function downloadFullMonthPDF() {
+    const dateVal = document.getElementById("dateInput").value;
+    if (!dateVal) {
+        alert("يرجى اختيار التاريخ لتحديد الشهر");
+        return;
+    }
+
+    const selectedDate = new Date(dateVal);
+    const year = selectedDate.getFullYear();
+    const month = selectedDate.getMonth();
+    const totalDays = new Date(year, month + 1, 0).getDate();
+
+    const progressContainer = document.getElementById("progressContainer");
+    const progressBar = document.getElementById("progressBar");
+    const progressText = document.getElementById("progressText");
+
+    progressContainer.style.display = "block";
+
+    const pdf = new jspdf.jsPDF("p", "mm", "a4");
+
+    for (let day = 1; day <= totalDays; day++) {
+        const formattedMonth = String(month + 1).padStart(2, '0');
+        const formattedDay = String(day).padStart(2, '0');
+        const curDate = `${year}-${formattedMonth}-${formattedDay}`;
+
+        document.getElementById("dateVal").textContent = curDate;
+
+        const canvas = await captureReportAtFullSize(1.5);
+        const imgData = canvas.toDataURL("image/jpeg", 0.85);
+
+        if (day > 1) {
+            pdf.addPage();
+        }
+        pdf.addImage(imgData, "JPEG", 0, 0, 210, 297);
+
+        const percent = Math.round((day / totalDays) * 100);
+        progressBar.style.width = percent + "%";
+        progressText.textContent = `جاري تجهيز يوم ${day} من ${totalDays} (${percent}%)`;
+    }
+
+    updatePreview(); // إعادة عرض تاريخ اليوم الأصلي
+    progressContainer.style.display = "none";
+
+    const d = transportData[driverSelect.value];
+    const driverName = d ? d.driverName : "تقرير";
+    const cleanName = driverName.replace(/\s+/g, '_');
+    const monthName = `${year}-${String(month + 1).padStart(2, '0')}`;
+    pdf.save(`كشف_شهر_${monthName}_${cleanName}.pdf`);
+}
+</script>
+
+</body>
+</html>

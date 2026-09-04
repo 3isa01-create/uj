@@ -1,0 +1,387 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<!-- عرض ثابت 1000px بدل عرض الجهاز: يجبر الصفحة كاملة على التصرف دائماً كأنها مفتوحة من كمبيوتر
+     بعرض 1000px، ثم يصغّر متصفح الجوال الصفحة كاملة تلقائياً لتناسب الشاشة دون كسر أي تنسيق. -->
+<meta name="viewport" content="width=1000">
+<title>سجل الفحص اليومي للسيارة</title>
+
+<!-- استدعاء ملف البيانات الموحد -->
+<script src="data.js"></script>
+
+<style>
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    direction: rtl;
+    margin: 0;
+    padding: 20px;
+    background: #eef2f5;
+}
+
+.container {
+    width: 650px;
+    max-width: 100%;
+    margin: 0 auto 30px auto;
+    background: white;
+    padding: 25px 30px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+    box-sizing: border-box;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+label {
+    display: block;
+    margin-bottom: 6px;
+    font-weight: bold;
+    color: #333;
+}
+
+input, select {
+    width: 100%;
+    padding: 10px;
+    box-sizing: border-box;
+    border: 1px solid #ccc;
+    border-radius: 6px;
+    font-size: 15px;
+    outline: none;
+}
+
+input:focus, select:focus {
+    border-color: #007bff;
+}
+
+.grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+.btn-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 20px;
+}
+
+button {
+    flex: 1 1 45%;
+    padding: 12px;
+    font-size: 15px;
+    font-weight: bold;
+    color: white;
+    background-color: #007bff;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: 0.2s;
+}
+
+button:hover {
+    background-color: #0056b3;
+}
+
+button.download-btn {
+    background-color: #28a745;
+}
+
+button.download-btn:hover {
+    background-color: #1e7e34;
+}
+
+button.month-btn {
+    background-color: #17a2b8;
+}
+
+button.month-btn:hover {
+    background-color: #117a8b;
+}
+
+/* شريط التقدم للتحميل الشهري */
+#progressBox {
+    display: none;
+    margin-top: 15px;
+    padding: 12px;
+    background: #e9ecef;
+    border-radius: 6px;
+    text-align: center;
+    font-weight: bold;
+    color: #333;
+}
+
+.progress-bar-container {
+    width: 100%;
+    background-color: #ddd;
+    border-radius: 4px;
+    height: 12px;
+    margin-top: 8px;
+    overflow: hidden;
+}
+
+.progress-bar-fill {
+    height: 100%;
+    width: 0%;
+    background-color: #28a745;
+    transition: width 0.1s;
+}
+
+/* حاوية معاينة التقرير */
+#reportViewport {
+    display: none;
+    width: 100%;
+    text-align: center;
+}
+
+#reportArea {
+    position: relative;
+    width: 800px;
+    height: 1131px;
+    margin: 0 auto;
+    background: white;
+    box-shadow: 0 0 10px rgba(0,0,0,0.15);
+    overflow: hidden;
+    display: inline-block;
+}
+
+#reportArea img.bg-image {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    top: 0;
+    left: 0;
+    z-index: 1;
+}
+
+/* تنسيق ومواقع النصوص بدقة داخل الخانات */
+.textField {
+    position: absolute;
+    z-index: 2;
+    font-size: 15px;
+    font-weight: bold;
+    color: #000;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    transform: translateY(-50%);
+}
+
+#driverName {
+    top: 264px;
+    right: 48px;
+    width: 275px;
+}
+
+#plate {
+    top: 264px;
+    right: 325px;
+    width: 114px;
+}
+
+#date {
+    top: 264px;
+    right: 442px;
+    width: 310px;
+    font-family: Arial, sans-serif;
+    letter-spacing: 0.5px;
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+    <h2 style="text-align: center; margin-top: 0; color: #222;">سجل الفحص اليومي للسيارة</h2>
+
+    <div class="form-group">
+        <label>اسم السائق والمركبة:</label>
+        <select id="driverSelect"></select>
+    </div>
+
+    <div class="form-group">
+        <label>رقم اللوحة:</label>
+        <input id="plateInput" readonly style="background-color: #f9f9f9;">
+    </div>
+
+    <div class="grid-2">
+        <div class="form-group">
+            <label>تاريخ اليوم المحدد:</label>
+            <input id="dateInput" type="date">
+        </div>
+        <div class="form-group">
+            <label>اختر الشهر (لتحميل شهر كامل):</label>
+            <input id="monthInput" type="month">
+        </div>
+    </div>
+
+    <div class="btn-group">
+        <button onclick="generateReport()">عرض التقرير</button>
+        <button class="download-btn" onclick="downloadSingleImage()">تحميل اليوم الحالي (صورة)</button>
+        <button class="month-btn" style="flex: 1 1 100%;" onclick="downloadMonthPDF()">تحميل سجل الشهر كامل (PDF)</button>
+    </div>
+
+    <div id="progressBox">
+        <div id="progressText">جاري المعالجة...</div>
+        <div class="progress-bar-container">
+            <div id="progressBar" class="progress-bar-fill"></div>
+        </div>
+    </div>
+</div>
+
+<!-- منطقة التقرير -->
+<div id="reportViewport">
+    <div id="reportArea">
+        <!-- تأكد من وجود صورة inspection.jpg في نفس المجلد -->
+        <img src="inspection.jpg" class="bg-image" alt="قالب الفحص">
+
+        <div id="driverName" class="textField"></div>
+        <div id="plate" class="textField"></div>
+        <div id="date" class="textField"></div>
+    </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+<script>
+// دالة مساعدة للالتقاط (تُبقي الشكل موحداً مع بقية الملفات)
+async function captureReportAtFullSize(scaleFactor) {
+    const area = document.getElementById('reportArea');
+    return await html2canvas(area, { scale: scaleFactor, useCORS: true, logging: false });
+}
+
+// تعبئة القائمة المنسدلة من بيانات ملف data.js
+const driverSelect = document.getElementById("driverSelect");
+transportData.forEach((d, index) => {
+    const opt = document.createElement("option");
+    opt.value = index;
+    opt.textContent = `${d.driverName} (${d.plateNumber})`;
+    driverSelect.appendChild(opt);
+});
+
+// إعداد التواريخ الافتراضية
+const now = new Date();
+const todayStr = now.toISOString().split('T')[0];
+const currentMonthStr = todayStr.substring(0, 7);
+
+document.getElementById("dateInput").value = todayStr;
+document.getElementById("monthInput").value = currentMonthStr;
+
+if(transportData.length > 0) {
+    document.getElementById("plateInput").value = transportData[0].plateNumber;
+}
+
+// تحديث رقم اللوحة عند تغيير السائق
+driverSelect.onchange = () => {
+    const selected = transportData[driverSelect.value];
+    document.getElementById("plateInput").value = selected ? selected.plateNumber : "";
+};
+
+function getSelectedDriver() {
+    return transportData[driverSelect.value] || transportData[0];
+}
+
+// طباعة البيانات على التقرير
+function setReportData(driver, dateText) {
+    document.getElementById("driverName").textContent = driver.driverName;
+    document.getElementById("plate").textContent = driver.plateNumber;
+    document.getElementById("date").textContent = dateText;
+}
+
+function generateReport() {
+    const driver = getSelectedDriver();
+    const dateVal = document.getElementById("dateInput").value;
+    setReportData(driver, dateVal);
+
+    const viewport = document.getElementById("reportViewport");
+    viewport.style.display = "block";
+    viewport.scrollIntoView({ behavior: 'smooth' });
+}
+
+// تحميل تقرير اليوم كصورة (PNG)
+async function downloadSingleImage() {
+    const driver = getSelectedDriver();
+    const dateVal = document.getElementById("dateInput").value;
+    setReportData(driver, dateVal);
+
+    const viewport = document.getElementById("reportViewport");
+    const prevDisplay = viewport.style.display;
+    viewport.style.display = "block";
+
+    try {
+        const canvas = await captureReportAtFullSize(2);
+        const imgURL = canvas.toDataURL("image/png");
+        
+        const cleanName = driver.driverName.replace(/\s+/g, '_');
+        const link = document.createElement("a");
+        link.href = imgURL;
+        link.download = `تقرير_فحص_${cleanName}_${dateVal}.png`;
+        link.click();
+    } finally {
+        viewport.style.display = prevDisplay;
+    }
+}
+
+// تحميل تقرير شهر كامل (PDF)
+async function downloadMonthPDF() {
+    const monthVal = document.getElementById("monthInput").value;
+    if (!monthVal) {
+        alert("يرجى اختيار الشهر أولاً.");
+        return;
+    }
+
+    const [year, month] = monthVal.split('-').map(Number);
+    const totalDays = new Date(year, month, 0).getDate();
+    const driver = getSelectedDriver();
+
+    const area = document.getElementById("reportArea");
+    const viewport = document.getElementById("reportViewport");
+    const prevDisplay = viewport.style.display;
+    viewport.style.display = "block";
+
+    const progressBox = document.getElementById("progressBox");
+    const progressText = document.getElementById("progressText");
+    const progressBar = document.getElementById("progressBar");
+    progressBox.style.display = "block";
+
+    const pdf = new jspdf.jsPDF("p", "pt", "a4");
+
+    try {
+        for (let day = 1; day <= totalDays; day++) {
+            const dayFormatted = String(day).padStart(2, '0');
+            const monthFormatted = String(month).padStart(2, '0');
+            const currentDateStr = `${year}-${monthFormatted}-${dayFormatted}`;
+
+            setReportData(driver, currentDateStr);
+
+            const percent = Math.round((day / totalDays) * 100);
+            progressText.textContent = `جاري تجهيز يوم (${day} من ${totalDays}) - ${currentDateStr}...`;
+            progressBar.style.width = `${percent}%`;
+
+            const canvas = await captureReportAtFullSize(1.8);
+            const imgData = canvas.toDataURL("image/jpeg", 0.90);
+
+            if (day > 1) {
+                pdf.addPage();
+            }
+            pdf.addImage(imgData, "JPEG", 0, 0, 595.28, 841.89);
+        }
+
+        const cleanName = driver.driverName.replace(/\s+/g, '_');
+        pdf.save(`سجل_فحص_شهر_${monthVal}_${cleanName}.pdf`);
+    } catch (err) {
+        console.error(err);
+        alert("حدث خطأ أثناء إنشاء ملف PDF.");
+    } finally {
+        viewport.style.display = prevDisplay;
+        progressBox.style.display = "none";
+        progressBar.style.width = "0%";
+    }
+}
+</script>
+
+</body>
+</html>
