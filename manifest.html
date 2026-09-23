@@ -6,7 +6,7 @@
      دائماً وكأنها تُفتح من كمبيوتر بعرض 1000px، ثم يقوم متصفح الجوال تلقائياً بتصغير الصفحة كاملة
      لتناسب عرض الشاشة (كأنها مُقربة/مُصغّرة) دون كسر أي تنسيق أو مواقع للحقول. يبقى بإمكان المستخدم
      التكبير (Pinch-Zoom) أو التمرير الأفقي عند الحاجة للتعامل مع الأزرار والحقول عن قرب. -->
-<meta name="viewport" content="width=1000, initial-scale=1, minimum-scale=1, maximum-scale=1, user-scalable=yes, shrink-to-fit=no">
+<meta name="viewport" content="width=1000">
 <title>إنشاء تقارير كشف السائق</title>
 
 <!-- استدعاء ملف البيانات الموحد -->
@@ -15,10 +15,6 @@
 <style>
 * {
     box-sizing: border-box;
-}
-
-html {
-    overflow-x: auto;
 }
 
 body {
@@ -76,6 +72,15 @@ input[readonly] {
     color: #555;
 }
 
+/* حقل الجهة المستفيدة: بخط عريض وواضح مثل نموذج الـ PDF */
+#beneficiaryInput {
+    font-weight: 800;
+    font-size: 17px;
+    color: #0f172a;
+    background-color: #f0f7ff;
+    border: 1px solid #93c5fd;
+}
+
 .template-section {
     background: #f8fafc;
     border: 1px dashed #cbd5e1;
@@ -100,12 +105,6 @@ button {
     cursor: pointer;
     transition: 0.2s background-color;
 }
-
-.btn-preview {
-    background-color: #7c3aed;
-    color: white;
-}
-.btn-preview:hover { background-color: #6d28d9; }
 
 .btn-single {
     background-color: #0284c7;
@@ -148,46 +147,29 @@ button {
 
 /* منطقة التقرير */
 #reportWrapper {
-    display: block;
-    width: 100%;
+    display: flex;
+    justify-content: center;
     padding-bottom: 40px;
-    overflow-x: auto;
-    overflow-y: visible;
-    -webkit-overflow-scrolling: touch;
 }
 
 #reportArea {
     position: relative;
     width: 800px;
-    min-width: 800px;
-    max-width: 800px;
     height: 1130px;
-    min-height: 1130px;
-    max-height: 1130px;
-    flex: 0 0 800px;
-    margin: 0 auto;
     background: white;
     box-shadow: 0 0 20px rgba(0,0,0,0.15);
-    overflow: hidden;
 }
 
 #reportArea img {
-    display: block;
-    width: 800px;
-    height: 1130px;
-    min-width: 800px;
-    max-width: none;
-    min-height: 1130px;
-    max-height: none;
+    width: 100%;
+    height: 100%;
     position: absolute;
     top: 0;
     left: 0;
     z-index: 1;
-    object-fit: fill;
-    object-position: top left;
 }
 
-/* الحقول المطبوعة */
+/* الحقول المطبوعة - مواضع محسوبة على التصميم الجديد (مقاس المرجع 2481x3509 بمقياس 800x1130) */
 .field {
     position: absolute;
     z-index: 2;
@@ -198,27 +180,24 @@ button {
     white-space: nowrap;
 }
 
-#driverNameVal { top: 156px; right: 130px; }
-#plateVal      { top: 196px; right: 130px; }
-#routeVal      { top: 236px; right: 130px; }
-
-#driverIdVal   { top: 156px; right: 560px; }
-#passengersVal { top: 196px; right: 560px; }
-#dateVal       { top: 236px; right: 560px; }
-
-/* على الجوال: الكشف نفسه يبقى بنفس المقاس ونفس الإحداثيات؛ لا يُسمح له بالانكماش */
-@media (max-width: 1000px) {
-    #reportWrapper {
-        width: 100%;
-        min-width: 0;
-        overflow-x: auto;
-    }
-
-    #reportArea {
-        margin-left: 20px;
-        margin-right: 20px;
-    }
+/* الصف الأول: اسم السائق / التاريخ / الجهة المستفيدة */
+#driverNameVal  { top: 210px; right: 556px; }
+#dateVal        { top: 210px; right: 387px; }
+#beneficiaryVal {
+    top: 205px;
+    right: 35px;
+    width: 300px;
+    white-space: normal;
+    text-align: right;
+    line-height: 1.2;
+    font-size: 18px;
+    font-weight: 800;
 }
+
+/* الصف الثاني: رقم اللوحة / اتجاه الرحلة / الجنسية */
+#plateVal       { top: 274px; right: 556px; }
+#routeVal       { top: 274px; right: 387px; }
+#nationalityVal { top: 274px; right: 35px; }
 </style>
 </head>
 <body>
@@ -232,18 +211,55 @@ button {
     </div>
 
     <div class="form-group">
-        <label>رقم الهوية:</label>
-        <input id="idInput" readonly>
-    </div>
-
-    <div class="form-group">
         <label>رقم اللوحة:</label>
         <input id="plateInput" readonly>
     </div>
 
     <div class="form-group">
-        <label>عدد الركاب:</label>
-        <input id="passengersInput" oninput="updatePreview()">
+        <label>الجهة المستفيدة:</label>
+        <input id="beneficiaryInput" value="مؤسسة تشغيل الفنادق" oninput="updatePreview()">
+    </div>
+
+    <div class="form-group">
+        <label>الجنسية:</label>
+        <select id="nationalitySelect" onchange="handleNationalityChange()">
+            <option value="الهند - India">الهند - India</option>
+            <option value="إندونيسيا - Indonesia">إندونيسيا - Indonesia</option>
+            <option value="باكستان - Pakistan">باكستان - Pakistan</option>
+            <option value="بنغلاديش - Bangladesh">بنغلاديش - Bangladesh</option>
+            <option value="مصر - Egypt">مصر - Egypt</option>
+            <option value="أفغانستان - Afghanistan">أفغانستان - Afghanistan</option>
+            <option value="نيبال - Nepal">نيبال - Nepal</option>
+            <option value="ماليزيا - Malaysia">ماليزيا - Malaysia</option>
+            <option value="الصين - China">الصين - China</option>
+            <option value="سنغافورة - Singapore">سنغافورة - Singapore</option>
+            <option value="الجزائر - Algeria">الجزائر - Algeria</option>
+            <option value="المغرب - Morocco">المغرب - Morocco</option>
+            <option value="العراق - Iraq">العراق - Iraq</option>
+            <option value="السودان - Sudan">السودان - Sudan</option>
+            <option value="اليمن - Yemen">اليمن - Yemen</option>
+            <option value="تونس - Tunisia">تونس - Tunisia</option>
+            <option value="الأردن - Jordan">الأردن - Jordan</option>
+            <option value="سوريا - Syria">سوريا - Syria</option>
+            <option value="نيجيريا - Nigeria">نيجيريا - Nigeria</option>
+            <option value="إثيوبيا - Ethiopia">إثيوبيا - Ethiopia</option>
+            <option value="تشاد - Chad">تشاد - Chad</option>
+            <option value="غانا - Ghana">غانا - Ghana</option>
+            <option value="السنغال - Senegal">السنغال - Senegal</option>
+            <option value="تركيا - Turkey">تركيا - Turkey</option>
+            <option value="فرنسا - France">فرنسا - France</option>
+            <option value="المملكة المتحدة - UK">المملكة المتحدة - UK</option>
+            <option value="الولايات المتحدة - USA">الولايات المتحدة - USA</option>
+            <option value="كندا - Canada">كندا - Canada</option>
+            <option value="أستراليا - Australia">أستراليا - Australia</option>
+            <option value="custom">-- أخرى (اكتب) --</option>
+        </select>
+    </div>
+
+    <!-- خانة كتابة الجنسية المخصصة تظهر عند اختيار "أخرى" -->
+    <div class="form-group" id="customNationalityContainer" style="display: none;">
+        <label>اكتب الجنسية:</label>
+        <input id="customNationalityInput" placeholder="مثال: كينيا - Kenya" oninput="updatePreview()">
     </div>
 
     <div class="form-group">
@@ -286,10 +302,6 @@ button {
     </div>
 
     <div class="btn-group">
-        <button class="btn-preview" onclick="showReport()">عرض الكشف</button>
-    </div>
-
-    <div class="btn-group">
         <button class="btn-single" onclick="downloadSingleDayPDF()">تحميل يوم واحد فقط</button>
         <button class="btn-month" onclick="downloadFullMonthPDF()">تحميل كشف شهر بالكامل</button>
     </div>
@@ -301,14 +313,14 @@ button {
 </div>
 
 <!-- منطقة التقرير -->
-<div id="reportWrapper" style="display:none;">
+<div id="reportWrapper">
     <div id="reportArea">
         <img id="templateImg" src="template_50.png" alt="نموذج التقرير">
 
         <div id="driverNameVal" class="field"></div>
-        <div id="driverIdVal" class="field"></div>
+        <div id="beneficiaryVal" class="field"></div>
         <div id="plateVal" class="field"></div>
-        <div id="passengersVal" class="field"></div>
+        <div id="nationalityVal" class="field"></div>
         <div id="routeVal" class="field"></div>
         <div id="dateVal" class="field"></div>
     </div>
@@ -343,11 +355,32 @@ function handleRouteChange() {
     updatePreview();
 }
 
+// معالجة تغيير الجنسية
+function handleNationalityChange() {
+    const select = document.getElementById('nationalitySelect');
+    const customContainer = document.getElementById('customNationalityContainer');
+    if (select.value === 'custom') {
+        customContainer.style.display = 'block';
+    } else {
+        customContainer.style.display = 'none';
+    }
+    updatePreview();
+}
+
 // جلب قيمة الوجهة الحالية
 function getSelectedRoute() {
     const select = document.getElementById('routeInput');
     if (select.value === 'custom') {
         return document.getElementById('customRouteInput').value || "غير محدد";
+    }
+    return select.value;
+}
+
+// جلب قيمة الجنسية الحالية
+function getSelectedNationality() {
+    const select = document.getElementById('nationalitySelect');
+    if (select.value === 'custom') {
+        return document.getElementById('customNationalityInput').value || "غير محدد";
     }
     return select.value;
 }
@@ -366,37 +399,8 @@ function uploadImage(event) {
 
 // دالة مساعدة للالتقاط (تُبقي الشكل موحداً مع بقية الملفات)
 async function captureReportAtFullSize(scaleFactor) {
-    const wrapper = document.getElementById('reportWrapper');
-    const wasHidden = getComputedStyle(wrapper).display === 'none';
-
-    if (wasHidden) {
-        wrapper.style.display = 'block';
-        // إعطاء المتصفح لحظة لإعادة حساب أبعاد الكشف قبل الالتقاط
-        await new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve)));
-    }
-
     const area = document.getElementById('reportArea');
-    const canvas = await html2canvas(area, {
-        scale: scaleFactor,
-        useCORS: true,
-        logging: false,
-        width: 800,
-        height: 1130,
-        windowWidth: 1000
-    });
-
-    if (wasHidden) {
-        wrapper.style.display = 'none';
-    }
-
-    return canvas;
-}
-
-// إظهار الكشف عند الطلب فقط
-function showReport() {
-    const wrapper = document.getElementById('reportWrapper');
-    wrapper.style.display = 'block';
-    wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    return await html2canvas(area, { scale: scaleFactor, useCORS: true, logging: false });
 }
 
 // ضبط تاريخ اليوم
@@ -417,11 +421,9 @@ driverSelect.onchange = () => {
     const idx = driverSelect.value;
     if(idx !== "") {
         const d = transportData[idx];
-        document.getElementById("idInput").value = d.idNumber;
         document.getElementById("plateInput").value = d.plateNumber;
-        document.getElementById("passengersInput").value = d.passengersCount;
-        
-        // ضبط القالب تلقائياً حسب عدد الركاب
+
+        // ضبط القالب تلقائياً حسب عدد الركاب (بيانات السائق فقط، دون التأثير على أي حقل ظاهر في النموذج)
         const templateSelect = document.getElementById('templateSelect');
         if (templateSelect.value !== 'custom') {
             const passCount = parseInt(d.passengersCount, 10);
@@ -442,9 +444,9 @@ function updatePreview() {
     const d = transportData[idx];
 
     document.getElementById("driverNameVal").textContent = d.driverName;
-    document.getElementById("driverIdVal").textContent = d.idNumber;
     document.getElementById("plateVal").textContent = d.plateNumber;
-    document.getElementById("passengersVal").textContent = document.getElementById("passengersInput").value;
+    document.getElementById("beneficiaryVal").textContent = document.getElementById("beneficiaryInput").value;
+    document.getElementById("nationalityVal").textContent = getSelectedNationality();
     document.getElementById("routeVal").textContent = getSelectedRoute();
     document.getElementById("dateVal").textContent = document.getElementById("dateInput").value;
 }
