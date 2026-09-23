@@ -2,11 +2,12 @@
 <html lang="ar" dir="rtl">
 <head>
 <meta charset="UTF-8">
-<!-- عرض متجاوب طبيعي بعرض الجهاز افتراضياً، حتى يظهر النموذج بحجمه الصحيح دون انضغاط في الجوالات.
-     معاينة الكشف (بعرضها الثابت 800px) تكون مخفية بشكل افتراضي، ولا تُعرض إلا عند الضغط على زر
-     "عرض معاينة الكشف". عندها فقط يتم تفعيل عرض ثابت 1000px مؤقتاً (عبر جافاسكربت) لعرض الكشف
-     بشكل سليم، ويعود العرض لوضعه الطبيعي المتجاوب عند إخفاء المعاينة مرة أخرى. -->
-<meta name="viewport" id="viewportMeta" content="width=device-width, initial-scale=1">
+<!-- عرض قياسي طبيعي بعرض الجهاز، دون أي تدخل من الجافاسكربت لتغييره لاحقاً.
+     النموذج يظهر بحجمه الصحيح المتجاوب في كل الأحوال.
+     معاينة الكشف تبقى بحجمها الثابت دائماً (لا تنضغط أبداً)، ومخفية افتراضياً حتى يضغط المستخدم
+     على زر "عرض معاينة الكشف"؛ وعند ظهورها على شاشة جوال أضيق من حجمها، يمكن للمستخدم تمرير
+     (Scroll) الكشف يميناً ويساراً لرؤيته بالكامل دون أن تتأثر مواضع الحقول المطبوعة عليه. -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>إنشاء تقارير كشف السائق</title>
 
 <!-- استدعاء ملف البيانات الموحد -->
@@ -147,8 +148,10 @@ button {
 
 /* منطقة التقرير */
 #reportWrapper {
-    display: flex;
-    justify-content: center;
+    width: 100%;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch;
     padding-bottom: 40px;
 }
 
@@ -165,17 +168,26 @@ button {
 }
 .btn-preview:hover { background-color: #334155; }
 
+/* الكشف يبقى بمقاسه الثابت دائماً ولا ينضغط أبداً مهما ضاقت شاشة الجهاز؛
+   flex-shrink:0 + min-width/min-height تمنع أي تصغير تلقائي من المتصفح،
+   وإن ضاقت الشاشة عن هذا المقاس يظهر تمرير أفقي (Scroll) بدل الانضغاط */
 #reportArea {
     position: relative;
     width: 800px;
     height: 1130px;
+    min-width: 800px;
+    min-height: 1130px;
+    flex-shrink: 0;
+    margin: 0 auto;
     background: white;
     box-shadow: 0 0 20px rgba(0,0,0,0.15);
 }
 
+/* الصورة بمقاس ثابت بالبكسل (وليس بالنسبة المئوية) حتى لا تنضغط أبداً مع الحاوية */
 #reportArea img {
-    width: 100%;
-    height: 100%;
+    width: 800px;
+    height: 1130px;
+    max-width: none;
     position: absolute;
     top: 0;
     left: 0;
@@ -412,41 +424,33 @@ function uploadImage(event) {
     }
 }
 
-// إظهار/إخفاء معاينة الكشف + التحكم بعرض الصفحة (viewport) حسب الحالة
+// إظهار/إخفاء معاينة الكشف فقط (دون أي تدخل في viewport الصفحة، لأن ذلك غير مستقر في متصفحات
+// الجوال خصوصاً الآيفون). الكشف يبقى بمقاسه الثابت دائماً، ويظهر تمرير أفقي تلقائياً عند الحاجة.
 function toggleReportPreview() {
     const wrapper = document.getElementById('reportWrapper');
     const btn = document.getElementById('togglePreviewBtn');
-    const viewportMeta = document.getElementById('viewportMeta');
     const isHidden = wrapper.classList.contains('report-hidden');
 
     if (isHidden) {
-        // إظهار المعاينة: تفعيل عرض ثابت 1000px مؤقتاً حتى يظهر الكشف بشكل سليم
         wrapper.classList.remove('report-hidden');
-        viewportMeta.setAttribute('content', 'width=1000');
         btn.textContent = 'إخفاء معاينة الكشف';
         wrapper.scrollIntoView({ behavior: 'smooth', block: 'start' });
     } else {
-        // إخفاء المعاينة: الرجوع لعرض الجهاز الطبيعي حتى لا ينضغط النموذج
         wrapper.classList.add('report-hidden');
-        viewportMeta.setAttribute('content', 'width=device-width, initial-scale=1');
         btn.textContent = 'عرض معاينة الكشف';
     }
 }
 
 // دالة مساعدة للالتقاط (تُبقي الشكل موحداً مع بقية الملفات)
-// تعمل حتى لو كانت معاينة الكشف مخفية عن المستخدم، لأنها تُظهرها وتُفعّل العرض الثابت مؤقتاً
-// أثناء الالتقاط فقط، ثم تعيد كل شيء لحالته السابقة كما كان قبل الضغط على زر التحميل
+// تعمل حتى لو كانت معاينة الكشف مخفية عن المستخدم: تُظهرها مؤقتاً فقط أثناء الالتقاط
+// (بدون أي تغيير على viewport الصفحة)، ثم تعيدها لحالتها السابقة بعد الانتهاء
 async function captureReportAtFullSize(scaleFactor) {
     const wrapper = document.getElementById('reportWrapper');
-    const viewportMeta = document.getElementById('viewportMeta');
-
     const wasHidden = wrapper.classList.contains('report-hidden');
-    const prevViewportContent = viewportMeta.getAttribute('content');
 
     if (wasHidden) {
         wrapper.classList.remove('report-hidden');
     }
-    viewportMeta.setAttribute('content', 'width=1000');
 
     const area = document.getElementById('reportArea');
     const canvas = await html2canvas(area, { scale: scaleFactor, useCORS: true, logging: false });
@@ -454,7 +458,6 @@ async function captureReportAtFullSize(scaleFactor) {
     if (wasHidden) {
         wrapper.classList.add('report-hidden');
     }
-    viewportMeta.setAttribute('content', prevViewportContent);
 
     return canvas;
 }
