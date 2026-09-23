@@ -123,7 +123,7 @@
     right:0;
     text-align:center;
     font-weight:800;
-    font-size:2.6cqw;
+    font-size:3.4cqw;
     color:var(--blue-deep);
     line-height:1.3;
   }
@@ -163,7 +163,7 @@
 <body>
 
 <div class="wrap">
-  <h1 class="page-title">عقد نقل ركاب</h1>
+  <h1 class="page-title">إنشاء عقد نقل ركاب</h1>
 
   <div class="form-panel">
     <h2>بيانات العقد</h2>
@@ -254,18 +254,12 @@ function render(){
   const gYear = d.getFullYear();
   const gregorianStr = `${toArabicIndic(gDay)} / ${toArabicIndic(gMonth)} / ${toArabicIndic(gYear)}م`;
 
-  let hijriStr = '';
-  const h = hijriFromDate(d);
-  if(h.ok){
-    hijriStr = `${toArabicIndic(h.day)} / ${toArabicIndic(h.month)} / ${toArabicIndic(h.year)} هـ`;
-  }
-
-  const dateDisplayStr = hijriStr ? `${hijriStr} (${gregorianStr})` : gregorianStr;
+  const dateDisplayStr = gregorianStr;
   document.getElementById('dateDisplay').textContent = dateDisplayStr;
 
   const beneficiary = document.getElementById('beneficiaryInput').value.trim() || 'الجهة المستفيدة';
   const destination = getDestination();
-  const contractDateForBody = hijriStr || gregorianStr;
+  const contractDateForBody = gregorianStr;
 
   const textEl = document.getElementById('contractText');
   textEl.innerHTML = `
