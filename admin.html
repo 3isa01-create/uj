@@ -1,0 +1,317 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="robots" content="noindex,nofollow">
+<title>إدارة السائقين</title>
+<script src="data.js"></script>
+<style>
+* { box-sizing: border-box; }
+body { margin:0; font-family:'Segoe UI',Tahoma,Geneva,Verdana,sans-serif; background:#eef2f5; color:#222; }
+.hidden { display:none !important; }
+header { background:#1e293b; color:#fff; padding:14px 20px; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px; }
+header h1 { margin:0; font-size:18px; }
+header a, header button.link { color:#cbd5e1; background:none; border:none; font-size:14px; cursor:pointer; text-decoration:none; padding:6px 10px; border-radius:6px; }
+header a:hover, header button.link:hover { background:#334155; color:#fff; }
+.card { background:#fff; border-radius:12px; box-shadow:0 4px 15px rgba(0,0,0,.1); padding:22px; max-width:1000px; margin:20px auto; }
+#login { max-width:360px; margin-top:80px; text-align:center; }
+input, select { width:100%; padding:10px; border:1px solid #ccc; border-radius:6px; font-size:15px; outline:none; font-family:inherit; }
+input:focus { border-color:#2563eb; }
+label { display:block; font-weight:bold; margin-bottom:5px; font-size:14px; }
+button { padding:10px 18px; font-size:14px; font-weight:bold; color:#fff; background:#2563eb; border:none; border-radius:6px; cursor:pointer; font-family:inherit; }
+button:hover { background:#1d4ed8; }
+button.green { background:#16a34a; } button.green:hover { background:#15803d; }
+button.red { background:#dc2626; } button.red:hover { background:#b91c1c; }
+button.gray { background:#64748b; } button.gray:hover { background:#475569; }
+button.sm { padding:5px 10px; font-size:13px; }
+.err { color:#dc2626; margin-top:10px; min-height:20px; font-size:14px; }
+.toolbar { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin-bottom:14px; }
+.toolbar input { flex:1 1 220px; }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:14px; }
+th, td { padding:9px 8px; border-bottom:1px solid #e5e7eb; text-align:right; white-space:nowrap; }
+th { background:#f1f5f9; position:sticky; top:0; }
+td.actions { display:flex; gap:6px; }
+.status { padding:10px 14px; border-radius:8px; margin-bottom:14px; font-size:14px; background:#fef9c3; color:#854d0e; }
+.status.ok { background:#dcfce7; color:#166534; }
+.modal-bg { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:center; justify-content:center; padding:16px; z-index:50; }
+.modal { background:#fff; border-radius:12px; padding:22px; width:100%; max-width:460px; }
+.modal h3 { margin-top:0; }
+.field { margin-bottom:12px; }
+.row { display:flex; gap:10px; justify-content:flex-end; margin-top:16px; }
+small.hint { color:#64748b; display:block; margin-top:4px; }
+</style>
+</head>
+<body>
+
+<!-- شاشة الدخول -->
+<div id="login" class="card">
+  <h2 style="margin-top:0">🔒 الإدارة</h2>
+  <div class="field">
+    <input type="password" id="pw" placeholder="كلمة المرور" autocomplete="current-password">
+  </div>
+  <button onclick="doLogin()" style="width:100%">دخول</button>
+  <div class="err" id="loginErr"></div>
+  <a href="index.html" style="color:#64748b;font-size:13px">← العودة للرئيسية</a>
+</div>
+
+<!-- لوحة التحكم -->
+<div id="panel" class="hidden">
+  <header>
+    <h1>إدارة السائقين والمركبات</h1>
+    <div>
+      <button class="link" onclick="changePw()">تغيير كلمة المرور</button>
+      <a href="index.html">الرئيسية</a>
+      <button class="link" onclick="logout()">خروج</button>
+    </div>
+  </header>
+
+  <div class="card">
+    <div id="status" class="status hidden"></div>
+    <div class="toolbar">
+      <input id="search" placeholder="بحث بالاسم أو الهوية أو اللوحة..." oninput="render()">
+      <button class="green" onclick="openForm(-1)">+ إضافة سائق</button>
+      <button id="pubBtn" onclick="publish()" disabled>☁️ نشر التعديلات</button>
+      <button class="gray" onclick="loadRemote()">تحديث</button>
+      <button class="gray" onclick="openGh()">🔗 ربط GitHub</button>
+    </div>
+    <div style="font-size:13px;color:#64748b;margin-bottom:8px">العدد: <b id="count"></b></div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>#</th><th>اسم السائق</th><th>رقم الهوية</th><th>رقم اللوحة</th><th>الركاب</th><th></th></tr></thead>
+        <tbody id="rows"></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- نافذة الإضافة/التعديل -->
+<div id="modalBg" class="modal-bg hidden">
+  <div class="modal">
+    <h3 id="modalTitle"></h3>
+    <div class="field"><label>اسم السائق</label><input id="f_name"></div>
+    <div class="field"><label>رقم الهوية</label><input id="f_idn" inputmode="numeric"></div>
+    <div class="field"><label>رقم اللوحة</label><input id="f_plate"><small class="hint">مثال: أ ص ع 3583</small></div>
+    <div class="field"><label>عدد الركاب</label><input id="f_pass" inputmode="numeric"></div>
+    <div class="err" id="formErr"></div>
+    <div class="row">
+      <button class="gray" onclick="closeForm()">إلغاء</button>
+      <button class="green" onclick="saveForm()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<div id="ghBg" class="modal-bg hidden">
+  <div class="modal">
+    <h3>ربط GitHub (مرة واحدة)</h3>
+    <div class="field"><label>المستودع</label><input id="gh_repo" dir="ltr" placeholder="3isa01-create/uj"></div>
+    <div class="field"><label>الفرع</label><input id="gh_branch" dir="ltr" placeholder="main"></div>
+    <div class="field"><label>التوكن (Token)</label><input id="gh_token" type="password" dir="ltr" placeholder="github_pat_..."></div>
+    <small class="hint" style="line-height:1.7">GitHub ← Settings ← Developer settings ← Personal access tokens ← Fine-grained tokens ← Generate new token. اختر المستودع <b>uj</b> فقط، وصلاحية <b>Contents: Read and write</b>. يُحفظ التوكن على هذا الجهاز فقط ولا يظهر في الكود.</small>
+    <div class="err" id="ghErr"></div>
+    <div class="row">
+      <button class="gray" onclick="closeGh()">إلغاء</button>
+      <button class="green" onclick="saveGh()">حفظ</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const ORIG_PW_HASH = '03ac674216f3e15c761ee1a5e255f067953623c8b388b4459e13f978d7c846f4'; // كلمة المرور الافتراضية: 1234 (غيّرها من داخل اللوحة)
+const LS_GH = 'gh_cfg';
+const DATA_PATH = 'data.js';
+const LS_PW = 'admin_pw_hash';
+
+const byName = (a, b) => a.driverName.localeCompare(b.driverName, 'ar') || a.plateNumber.localeCompare(b.plateNumber, 'ar');
+let list = JSON.parse(JSON.stringify(transportData)).sort(byName);
+let remoteSha = null, dirty = false;
+try { localStorage.removeItem('transportData_override'); } catch (e) {}
+let editIndex = -1;
+
+async function sha256(t) {
+  const b = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(t));
+  return [...new Uint8Array(b)].map(x => x.toString(16).padStart(2, '0')).join('');
+}
+function pwHash() { try { return localStorage.getItem(LS_PW) || ORIG_PW_HASH; } catch (e) { return ORIG_PW_HASH; } }
+
+async function doLogin() {
+  const v = document.getElementById('pw').value;
+  if (await sha256(v) === pwHash()) {
+    try { sessionStorage.setItem('admin_ok', '1'); } catch (e) {}
+    showPanel();
+  } else {
+    document.getElementById('loginErr').textContent = 'كلمة المرور غير صحيحة';
+    document.getElementById('pw').value = '';
+  }
+}
+document.getElementById('pw').addEventListener('keydown', e => { if (e.key === 'Enter') doLogin(); });
+
+function showPanel() {
+  document.getElementById('login').classList.add('hidden');
+  document.getElementById('panel').classList.remove('hidden');
+  render();
+  if (getGh()) loadRemote(); else openGh();
+}
+function logout() { try { sessionStorage.removeItem('admin_ok'); } catch (e) {} location.reload(); }
+
+async function changePw() {
+  const n = prompt('كلمة المرور الجديدة (4 أحرف على الأقل):');
+  if (!n) return;
+  if (n.length < 4) { alert('كلمة المرور قصيرة.'); return; }
+  localStorage.setItem(LS_PW, await sha256(n));
+  alert('تم تغيير كلمة المرور على هذا الجهاز.');
+}
+
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+
+function render() {
+  const q = document.getElementById('search').value.trim();
+  const tb = document.getElementById('rows');
+  tb.innerHTML = '';
+  let n = 0;
+  list.forEach((d, i) => {
+    if (q && !(d.driverName + ' ' + d.idNumber + ' ' + d.plateNumber).includes(q)) return;
+    n++;
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${esc(d.id)}</td><td>${esc(d.driverName)}</td><td>${esc(d.idNumber)}</td><td>${esc(d.plateNumber)}</td><td>${esc(d.passengersCount)}</td>
+      <td class="actions"><button class="sm" onclick="openForm(${i})">تعديل</button><button class="sm red" onclick="del(${i})">حذف</button></td>`;
+    tb.appendChild(tr);
+  });
+  document.getElementById('count').textContent = n + ' / ' + list.length;
+}
+
+function setStatus(msg, ok) {
+  const s = document.getElementById('status');
+  s.textContent = msg; s.className = 'status' + (ok ? ' ok' : '');
+}
+
+function persist(msg) {
+  dirty = true;
+  document.getElementById('pubBtn').disabled = false;
+  setStatus(msg + ' — اضغط «نشر التعديلات» لرفعها للموقع.', false);
+  render();
+}
+
+function openForm(i) {
+  editIndex = i;
+  const d = i >= 0 ? list[i] : { driverName: '', idNumber: '', plateNumber: '', passengersCount: '' };
+  document.getElementById('modalTitle').textContent = i >= 0 ? 'تعديل سائق' : 'إضافة سائق';
+  f_name.value = d.driverName; f_idn.value = d.idNumber; f_plate.value = d.plateNumber; f_pass.value = d.passengersCount;
+  document.getElementById('formErr').textContent = '';
+  document.getElementById('modalBg').classList.remove('hidden');
+  f_name.focus();
+}
+function closeForm() { document.getElementById('modalBg').classList.add('hidden'); }
+
+function saveForm() {
+  const rec = {
+    driverName: f_name.value.trim().replace(/\s+/g, ' '),
+    idNumber: f_idn.value.trim(),
+    plateNumber: f_plate.value.trim().replace(/\s+/g, ' '),
+    passengersCount: f_pass.value.trim()
+  };
+  const err = document.getElementById('formErr');
+  if (!rec.driverName || !rec.plateNumber) { err.textContent = 'الاسم ورقم اللوحة مطلوبان.'; return; }
+  if (rec.idNumber && !/^\d{10}$/.test(rec.idNumber)) { err.textContent = 'رقم الهوية يجب أن يكون 10 أرقام.'; return; }
+  if (rec.passengersCount && !/^\d+$/.test(rec.passengersCount)) { err.textContent = 'عدد الركاب أرقام فقط.'; return; }
+  if (editIndex >= 0) {
+    list[editIndex] = Object.assign({}, list[editIndex], rec);
+  } else {
+    rec.id = list.reduce((m, d) => Math.max(m, Number(d.id) || 0), 0) + 1;
+    list.push(rec);
+  }
+  list.sort(byName);
+  closeForm();
+  persist(editIndex >= 0 ? 'تم التعديل' : 'تمت الإضافة');
+}
+
+function del(i) {
+  if (!confirm('حذف السائق «' + list[i].driverName + '» (' + list[i].plateNumber + ')؟')) return;
+  list.splice(i, 1);
+  persist('تم الحذف');
+}
+
+function getGh() { try { return JSON.parse(localStorage.getItem(LS_GH) || 'null'); } catch (e) { return null; } }
+function openGh() {
+  const c = getGh() || {};
+  gh_repo.value = c.repo || '3isa01-create/uj';
+  gh_branch.value = c.branch || 'main';
+  gh_token.value = c.token || '';
+  document.getElementById('ghErr').textContent = '';
+  document.getElementById('ghBg').classList.remove('hidden');
+}
+function closeGh() { document.getElementById('ghBg').classList.add('hidden'); }
+function saveGh() {
+  const c = { repo: gh_repo.value.trim(), branch: gh_branch.value.trim() || 'main', token: gh_token.value.trim() };
+  if (!/^[\w.-]+\/[\w.-]+$/.test(c.repo) || !c.token) { document.getElementById('ghErr').textContent = 'أدخل المستودع (owner/repo) والتوكن.'; return; }
+  localStorage.setItem(LS_GH, JSON.stringify(c));
+  closeGh();
+  loadRemote();
+}
+
+function ghFetch(path, opts) {
+  const c = getGh();
+  return fetch('https://api.github.com/repos/' + c.repo + '/contents/' + path, Object.assign({
+    headers: { 'Authorization': 'Bearer ' + c.token, 'Accept': 'application/vnd.github+json', 'X-GitHub-Api-Version': '2022-11-28' },
+    cache: 'no-store'
+  }, opts));
+}
+function b64ToUtf8(b) { return new TextDecoder().decode(Uint8Array.from(atob(b.replace(/\s/g, '')), c => c.charCodeAt(0))); }
+function utf8ToB64(s) { let bin = ''; new TextEncoder().encode(s).forEach(b => bin += String.fromCharCode(b)); return btoa(bin); }
+
+async function loadRemote() {
+  const c = getGh();
+  if (!c) { setStatus('لم يتم ربط GitHub بعد — اضغط «ربط GitHub». حالياً تعرض اللوحة نسخة الموقع للقراءة فقط.', false); return; }
+  if (dirty && !confirm('توجد تعديلات غير منشورة ستضيع. متابعة؟')) return;
+  setStatus('جاري التحميل من GitHub...', false);
+  try {
+    const r = await ghFetch(DATA_PATH + '?ref=' + encodeURIComponent(c.branch));
+    if (!r.ok) throw new Error(r.status === 401 ? 'التوكن غير صحيح أو منتهي' : r.status === 404 ? 'لم يُعثر على data.js أو لا توجد صلاحية للمستودع' : 'خطأ ' + r.status);
+    const j = await r.json();
+    remoteSha = j.sha;
+    list = new Function(b64ToUtf8(j.content) + ';return transportData;')().sort(byName);
+    dirty = false;
+    document.getElementById('pubBtn').disabled = true;
+    setStatus('تم التحميل من GitHub (' + list.length + ' سائق).', true);
+    render();
+  } catch (e) { setStatus('تعذر التحميل: ' + e.message, false); }
+}
+
+function q(s) { return "'" + String(s).replace(/\\/g, '\\\\').replace(/'/g, "\\'") + "'"; }
+function buildJs() {
+  list.sort(byName);
+  const lines = list.map(d => `  { id: ${Number(d.id) || 0}, driverName: ${q(d.driverName)}, idNumber: ${q(d.idNumber)}, plateNumber: ${q(d.plateNumber)}, passengersCount: ${q(d.passengersCount)} }`);
+  return 'let transportData = [\n' + lines.join(',\n') + '\n];\n';
+}
+
+async function publish() {
+  const c = getGh();
+  if (!c) { openGh(); return; }
+  if (!remoteSha) { await loadRemote(); if (!remoteSha) return; }
+  const btn = document.getElementById('pubBtn');
+  btn.disabled = true;
+  setStatus('جاري النشر...', false);
+  try {
+    const r = await ghFetch(DATA_PATH, {
+      method: 'PUT',
+      body: JSON.stringify({ message: 'تحديث بيانات السائقين من لوحة الإدارة', content: utf8ToB64(buildJs()), sha: remoteSha, branch: c.branch })
+    });
+    if (r.status === 409 || r.status === 422) throw new Error('الملف تغيّر على GitHub من مكان آخر. اضغط «تحديث» ثم أعد التعديل.');
+    if (!r.ok) throw new Error(r.status === 401 || r.status === 403 ? 'التوكن لا يملك صلاحية الكتابة' : 'خطأ ' + r.status);
+    const j = await r.json();
+    remoteSha = j.content.sha;
+    dirty = false;
+    setStatus('✅ تم النشر على GitHub. يظهر في الموقع خلال 1–10 دقائق (تحديث Pages وذاكرة المتصفح).', true);
+  } catch (e) {
+    btn.disabled = false;
+    setStatus('فشل النشر: ' + e.message, false);
+  }
+}
+
+window.addEventListener('beforeunload', e => { if (dirty) { e.preventDefault(); e.returnValue = ''; } });
+
+try { if (sessionStorage.getItem('admin_ok') === '1') showPanel(); } catch (e) {}
+</script>
+</body>
+</html>
