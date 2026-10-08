@@ -11,6 +11,7 @@ const transportData = [
   { id: 39, driverName: 'رفيق زمان الدين', idNumber: '2169251408', plateNumber: 'أ ص ل 7344', passengersCount: '49' },
   { id: 32, driverName: 'سجاد علي محمد اسلم', idNumber: '2488898400', plateNumber: 'أ س أ 8537', passengersCount: '49' },
   { id: 10, driverName: 'سلامه فرغلي سلامه جلال', idNumber: '2603421815', plateNumber: 'أ ط ص 6803', passengersCount: '12' },
+  { id: 10, driverName: 'سلامه فرغلي سلامه جلال', idNumber: '2603421815', plateNumber: 'أ ط ع 1439', passengersCount: '12' },
   { id: 4, driverName: 'شهاب الدين صادق احمد', idNumber: '2113959585', plateNumber: 'أ ص م 4051', passengersCount: '12' },
   { id: 27, driverName: 'عبد ال مجيد تودي مانانا', idNumber: '2568604561', plateNumber: 'أ ص ل 7341', passengersCount: '49' },
   { id: 25, driverName: 'عبد الشكور كوكيلات بورايل بوثيا', idNumber: '2625889429', plateNumber: 'أ ط ع 1098', passengersCount: '19' },
